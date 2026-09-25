@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bin Route Davao</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+<section id="intro">
+  <h1>GOKGOKGOK</h1>
+  <p class="mute">Every barangay has a drop point and a drop day. Trucks are sent to the fullest sites first. Pick how you want to use it.</p>
+  <div class="roles">
+    <button class="role" onclick="start('res')"><span class="i">🏠</span><b>I throw trash</b>Find your barangay's drop point and day. Post feedback or a photo.</button>
+    <button class="role" onclick="start('col')"><span class="i">🚛</span><b>I collect trash</b>See which sites are full, watch trucks live, read resident reports.</button>
+    <button class="role" onclick="start('adm')"><span class="i">🛠️</span><b>I'm the admin</b>Add or remove trucks and set each barangay's drop day.</button>
+  </div>
+</section>
+<section id="app" hidden>
+  <div class="bar">
+    <div><b id="who"></b> <button class="btn alt" onclick="home()">Switch role</button></div>
+    <label class="mute">Demo day <select id="dsel" style="width:auto" onchange="day=+this.value;panel()"></select></label>
+  </div>
+  <div class="grid">
+    <div class="card"><div id="map"></div>
+      <div class="legend"><span>Number = site fill %</span><span>Dashed ring = open for throwing today</span><span>🚛 = live truck</span><span>🏭 = warehouse</span></div>
+      <p class="mute">Schematic map of Davao City using approximate barangay positions, not survey-accurate.</p></div>
+    <div class="card" id="panel"></div>
+  </div>
+</section>
+</main>
+<script src="script.js"></script>
+</body>
+</html>

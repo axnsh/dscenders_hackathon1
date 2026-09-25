@@ -1,0 +1,342 @@
+:root {
+  --bg: #eef2f3;
+  --card: #fff;
+  --ink: #16292f;
+  --mute: #5d7177;
+  --line: #d5dee1;
+  --ok: #2f9e6e;
+  --warn: #e0a020;
+  --bad: #d64545;
+  --ai: #1f6fd1;
+  --land: #e4ebdd;
+  --sea: #bcd8ea;
+
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* =========================
+   Dark Mode
+   ========================= */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1b1f;
+    --card: #182a30;
+    --ink: #e6f0f2;
+    --mute: #93aab0;
+    --line: #2b4249;
+    --ai: #5aa2ff;
+    --land: #22352b;
+    --sea: #17364a;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1b1f;
+  --card: #182a30;
+  --ink: #e6f0f2;
+  --mute: #93aab0;
+  --line: #2b4249;
+  --ai: #5aa2ff;
+  --land: #22352b;
+  --sea: #17364a;
+}
+
+/* =========================
+   Global Styles
+   ========================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 Sora, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* =========================
+   Typography
+   ========================= */
+
+h1 {
+  font-size: 26px;
+  margin: 8px 0 4px;
+}
+
+h2 {
+  font-size: 15px;
+  margin: 12px 0 6px;
+}
+
+.mute {
+  color: var(--mute);
+  font-size: 13px;
+}
+
+/* =========================
+   Layout
+   ========================= */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 12px;
+}
+
+.roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.sched {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-items: center;
+  margin: 4px 0;
+}
+
+/* =========================
+   Cards
+   ========================= */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.role {
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.role:hover {
+  border-color: var(--ai);
+}
+
+.role b {
+  display: block;
+  font-size: 18px;
+  margin: 6px 0 4px;
+}
+
+.role span.i {
+  font-size: 30px;
+}
+
+/* =========================
+   Buttons
+   ========================= */
+
+.btn {
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ai);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn.alt {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.w {
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* =========================
+   Form Elements
+   ========================= */
+
+select,
+textarea,
+input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+/* =========================
+   Focus States
+   ========================= */
+
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--warn);
+  outline-offset: 2px;
+}
+
+/* =========================
+   Alerts
+   ========================= */
+
+.alert {
+  padding: 9px 12px;
+  border-radius: 10px;
+  margin: 8px 0;
+  font-size: 14px;
+  border: 1px solid;
+}
+
+.alert.bad {
+  border-color: var(--bad);
+  background: color-mix(
+    in srgb,
+    var(--bad) 15%,
+    transparent
+  );
+}
+
+.alert.ok {
+  border-color: var(--ok);
+  background: color-mix(
+    in srgb,
+    var(--ok) 15%,
+    transparent
+  );
+}
+
+.alert.warn {
+  border-color: var(--warn);
+  background: color-mix(
+    in srgb,
+    var(--warn) 18%,
+    transparent
+  );
+}
+
+/* =========================
+   Progress / Meters
+   ========================= */
+
+.meter {
+  height: 10px;
+  background: var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 4px 0 8px;
+}
+
+.meter b {
+  display: block;
+  height: 100%;
+}
+
+/* =========================
+   Rows & Lists
+   ========================= */
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--mute);
+}
+
+.li {
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* =========================
+   Posts
+   ========================= */
+
+.post {
+  border-top: 1px solid var(--line);
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.post img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+/* =========================
+   SVG / Map
+   ========================= */
+
+svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+}
+
+/* =========================
+   Legend
+   ========================= */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--mute);
+  font-size: 12px;
+}
+
+/* =========================
+   Responsive
+   ========================= */
+
+@media (max-width: 780px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
