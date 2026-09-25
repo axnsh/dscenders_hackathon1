@@ -375,7 +375,7 @@ h2 {
   border: 1px solid rgba(255,255,255,.18);
 
   background: rgba(255,255,255,.12);
-  color: #fff;
+  color: rgb(147, 147, 147);
 }
 
 .topbar .avatar {
