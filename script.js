@@ -1,11 +1,19 @@
-const $ = s => document.querySelector(s),
-D = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+// =========================================================
+// 1. HELPERS / CONSTANTS
+// =========================================================
+
+const $ = s => document.querySelector(s);
+
+const D = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday',
+  'Thursday', 'Friday', 'Saturday'
+];
 
 const esc = t => t.replace(/[&<>"]/g, c => ({
-  '&':'&amp;',
-  '<':'&lt;',
-  '>':'&gt;',
-  '"':'&quot;'
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;'
 }[c]));
 
 const col = v =>
@@ -24,9 +32,12 @@ const PALETTE = [
   '#00838f','#8e24aa','#ef6c00'
 ];
 
-// ---- sites: [name, fallback lat, fallback lng, drop day (0=Sun), start fill %, fill rate, capacity L] ----
-// fallback lat/lng are only used if the Geocoding API call for that barangay fails or returns a
-// result outside Davao City; on load every site is (re)located via google.maps.Geocoder.
+
+// =========================================================
+// 2. SITES / BARANGAYS
+// =========================================================
+
+// [name, fallback lat, fallback lng, drop day, fill %, rate, capacity L]
 const S = [
   ['Panacan',7.1590,125.6445,3,40,6,2000],
   ['Sasa',7.1297,125.6509,1,55,5,1500],
@@ -47,62 +58,65 @@ const S = [
   ['Bunawan',7.2366,125.6439,4,70,4,1200],
   ['Paquibato',7.2500,125.6200,5,20,2,800]
 ].map(([n,la,ln,d,f,r,c]) => ({
-  id:n.toLowerCase(),
-  name:n,
-  fla:la,
-  fln:ln,
+  id: n.toLowerCase(),
+  name: n,
+  fla: la,
+  fln: ln,
   la,
   ln,
-  day:d,
-  fill:f,
-  rate:r,
-  cap:c,
-  arrivals:[],
-  lastArrival:null
+  day: d,
+  fill: f,
+  rate: r,
+  cap: c,
+  arrivals: [],
+  lastArrival: null
 }));
 
-// rough Davao City bounding box
+
+// =========================================================
+// 3. DAVAO BOUNDS / WAREHOUSE / NODES
+// =========================================================
+
 const DAVAO_BOUNDS = {
-  south:6.95,
-  north:7.42,
-  west:125.20,
-  east:125.80
+  south: 6.95,
+  north: 7.42,
+  west: 125.20,
+  east: 125.80
 };
 
-const inDavao = (la,ln) =>
+const inDavao = (la, ln) =>
   la >= DAVAO_BOUNDS.south &&
   la <= DAVAO_BOUNDS.north &&
   ln >= DAVAO_BOUNDS.west &&
   ln <= DAVAO_BOUNDS.east;
 
-// warehouse
 const wh = {
-  id:'wh',
-  name:'Warehouse',
-  la:7.0900,
-  ln:125.5300,
-  fill:15000,
-  cap:60000,
-  lastArrival:null
+  id: 'wh',
+  name: 'Warehouse',
+  la: 7.0900,
+  ln: 125.5300,
+  fill: 15000,
+  cap: 60000,
+  lastArrival: null
 };
 
-// graph nodes
 const NODES = {};
 
 [wh, ...S].forEach(n => {
-  NODES[n.id] = {
-    la:n.la,
-    ln:n.ln
-  };
+  NODES[n.id] = { la: n.la, ln: n.ln };
 });
 
 [
-  ['matina-c',7.0625,125.5750]
-].forEach(([id,la,ln]) => {
-  NODES[id] = {la,ln};
+  ['matina-c', 7.0625, 125.5750]
+].forEach(([id, la, ln]) => {
+  NODES[id] = { la, ln };
 });
 
-// road network
+
+// =========================================================
+// 4. ROAD NETWORK
+// =========================================================
+
 const EDGES = [
   ['wh','matina-c'],
   ['matina-c','matina'],
@@ -139,25 +153,23 @@ const EDGES = [
   ['paquibato','calinan']
 ];
 
-// ---- geocoding ----
+
+// =========================================================
+// 5. GEOCODING
+// =========================================================
+
 function geocodeOne(name) {
   return new Promise(res => {
     const geocoder = new google.maps.Geocoder();
 
     geocoder.geocode({
-      address:`Barangay ${name}, Davao City, Davao del Sur, Philippines`,
-      componentRestrictions:{country:'PH'},
-      bounds:new google.maps.LatLngBounds(
-        {
-          lat:DAVAO_BOUNDS.south,
-          lng:DAVAO_BOUNDS.west
-        },
-        {
-          lat:DAVAO_BOUNDS.north,
-          lng:DAVAO_BOUNDS.east
-        }
+      address: `Barangay ${name}, Davao City, Davao del Sur, Philippines`,
+      componentRestrictions: { country: 'PH' },
+      bounds: new google.maps.LatLngBounds(
+        { lat: DAVAO_BOUNDS.south, lng: DAVAO_BOUNDS.west },
+        { lat: DAVAO_BOUNDS.north, lng: DAVAO_BOUNDS.east }
       )
-    }, (results,status) => {
+    }, (results, status) => {
       if (status === 'OK' && results.length) {
         const hit =
           results.find(r => /davao city/i.test(r.formatted_address)) ||
@@ -166,9 +178,9 @@ function geocodeOne(name) {
         const loc = hit.geometry.location;
 
         res({
-          la:loc.lat(),
-          ln:loc.lng(),
-          ok:inDavao(loc.lat(), loc.lng())
+          la: loc.lat(),
+          ln: loc.lng(),
+          ok: inDavao(loc.lat(), loc.lng())
         });
       } else {
         res(null);
@@ -191,8 +203,8 @@ async function geocodeSites() {
     }
 
     NODES[s.id] = {
-      la:s.la,
-      ln:s.ln
+      la: s.la,
+      ln: s.ln
     };
   }
 
@@ -201,8 +213,12 @@ async function geocodeSites() {
     : `All ${S.length} barangays geocoded within Davao City. Loading road routes...`;
 }
 
-// ---- distance helpers ----
-function hav(a,b) {
+
+// =========================================================
+// 6. DISTANCE / PATH HELPERS
+// =========================================================
+
+function hav(a, b) {
   const R = 6371000;
   const rad = Math.PI / 180;
   const dla = (b.la - a.la) * rad;
@@ -221,21 +237,18 @@ function mkPath(pts) {
   const cum = [0];
 
   for (let i = 1; i < pts.length; i++) {
-    cum.push(
-      cum[i - 1] +
-      hav(pts[i - 1], pts[i])
-    );
+    cum.push(cum[i - 1] + hav(pts[i - 1], pts[i]));
   }
 
   return {
     pts,
     cum,
-    len:cum[cum.length - 1]
+    len: cum[cum.length - 1]
   };
 }
 
-function posAt(path,d) {
-  const {pts,cum} = path;
+function posAt(path, d) {
+  const { pts, cum } = path;
 
   if (d >= path.len) {
     return pts[pts.length - 1];
@@ -254,17 +267,21 @@ function posAt(path,d) {
     }
   }
 
-  const i = Math.max(1,lo);
+  const i = Math.max(1, lo);
   const span = (cum[i] - cum[i - 1]) || 1;
   const f = (d - cum[i - 1]) / span;
 
   return {
-    la:pts[i - 1].la + (pts[i].la - pts[i - 1].la) * f,
-    ln:pts[i - 1].ln + (pts[i].ln - pts[i - 1].ln) * f
+    la: pts[i - 1].la + (pts[i].la - pts[i - 1].la) * f,
+    ln: pts[i - 1].ln + (pts[i].ln - pts[i - 1].ln) * f
   };
 }
 
-// ---- road routes via Google Directions ----
+
+// =========================================================
+// 7. GOOGLE DIRECTIONS / ROAD ROUTES
+// =========================================================
+
 const ADJ = {};
 
 Object.keys(NODES).forEach(k => {
@@ -274,22 +291,22 @@ Object.keys(NODES).forEach(k => {
 let routesReady = false;
 let fallbackCount = 0;
 
-function fetchRoad(a,b) {
+function fetchRoad(a, b) {
   return new Promise(res => {
     const svc = new google.maps.DirectionsService();
 
     svc.route({
-      origin:{
-        lat:NODES[a].la,
-        lng:NODES[a].ln
+      origin: {
+        lat: NODES[a].la,
+        lng: NODES[a].ln
       },
-      destination:{
-        lat:NODES[b].la,
-        lng:NODES[b].ln
+      destination: {
+        lat: NODES[b].la,
+        lng: NODES[b].ln
       },
-      travelMode:'DRIVING',
-      avoidFerries:true
-    }, (r,status) => {
+      travelMode: 'DRIVING',
+      avoidFerries: true
+    }, (r, status) => {
       if (status === 'OK' && r.routes[0]) {
         const steps = r.routes[0].legs.flatMap(l => l.steps);
 
@@ -306,8 +323,8 @@ function fetchRoad(a,b) {
           steps
             .flatMap(s => s.path)
             .map(p => ({
-              la:p.lat(),
-              ln:p.lng()
+              la: p.lat(),
+              ln: p.lng()
             }))
         );
       } else {
@@ -319,44 +336,41 @@ function fetchRoad(a,b) {
 
 async function loadRoutes() {
   const roads = await Promise.all(
-    EDGES.map(([a,b]) => fetchRoad(a,b))
+    EDGES.map(([a, b]) => fetchRoad(a, b))
   );
 
-  EDGES.forEach(([a,b],i) => {
+  EDGES.forEach(([a, b], i) => {
     const color = PALETTE[i % PALETTE.length];
 
     let pts = roads[i];
 
     if (!pts) {
       fallbackCount++;
-      pts = [
-        NODES[a],
-        NODES[b]
-      ];
+      pts = [NODES[a], NODES[b]];
     }
 
     const p = mkPath(pts);
     const rp = mkPath([...pts].reverse());
 
     ADJ[a].push({
-      to:b,
-      path:p
+      to: b,
+      path: p
     });
 
     ADJ[b].push({
-      to:a,
-      path:rp
+      to: a,
+      path: rp
     });
 
     new google.maps.Polyline({
-      map:gmap,
-      path:pts.map(q => ({
-        lat:q.la,
-        lng:q.ln
+      map: gmap,
+      path: pts.map(q => ({
+        lat: q.la,
+        lng: q.ln
       })),
-      strokeColor:color,
-      strokeOpacity:.9,
-      strokeWeight:5
+      strokeColor: color,
+      strokeOpacity: 0.9,
+      strokeWeight: 5
     });
   });
 
@@ -367,7 +381,11 @@ async function loadRoutes() {
     : `All ${EDGES.length} routes follow real roads.`;
 }
 
-// Dijkstra
+
+// =========================================================
+// 8. DIJKSTRA / ROUTE FINDING
+// =========================================================
+
 function dijkstra(src) {
   const dist = {};
   const prev = {};
@@ -397,16 +415,13 @@ function dijkstra(src) {
     done.add(u);
 
     for (const e of ADJ[u]) {
-      const nd =
-        dist[u] +
-        e.path.len;
+      const nd = dist[u] + e.path.len;
 
       if (nd < dist[e.to]) {
         dist[e.to] = nd;
-
         prev[e.to] = {
-          from:u,
-          path:e.path
+          from: u,
+          path: e.path
         };
       }
     }
@@ -418,7 +433,7 @@ function dijkstra(src) {
   };
 }
 
-function pathTo(prev,src,dst) {
+function pathTo(prev, src, dst) {
   if (src === dst) return null;
 
   const segs = [];
@@ -435,14 +450,18 @@ function pathTo(prev,src,dst) {
 
   const pts = segs
     .reverse()
-    .flatMap((s,i) =>
+    .flatMap((s, i) =>
       i === 0 ? s : s.slice(1)
     );
 
   return mkPath(pts);
 }
 
-// ---- state ----
+
+// =========================================================
+// 9. APP STATE
+// =========================================================
+
 const T = [];
 
 let tid = 0;
@@ -468,38 +487,42 @@ const STOP_TICKS = 6;
 
 const stamp = () =>
   new Date().toLocaleTimeString([], {
-    hour:'2-digit',
-    minute:'2-digit',
-    second:'2-digit'
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
   });
 
 function addTruck() {
   tid++;
 
   T.push({
-    id:tid,
-    la:wh.la,
-    ln:wh.ln,
-    node:'wh',
-    target:null,
-    route:null,
-    d:0,
-    st:'idle',
-    load:0,
-    cap:8000,
-    dwell:0,
-    lastArrival:null
+    id: tid,
+    la: wh.la,
+    ln: wh.ln,
+    node: 'wh',
+    target: null,
+    route: null,
+    d: 0,
+    st: 'idle',
+    load: 0,
+    cap: 8000,
+    dwell: 0,
+    lastArrival: null
   });
 }
 
 addTruck();
 addTruck();
 
-$('#dsel').innerHTML = D.map((d,i) =>
+$('#dsel').innerHTML = D.map((d, i) =>
   `<option value="${i}"${i === day ? ' selected' : ''}>${d}${i === new Date().getDay() ? ' (today)' : ''}</option>`
 ).join('');
 
-// ---- truck logic ----
+
+// =========================================================
+// 10. TRUCK LOGIC
+// =========================================================
+
 function arrive(t) {
   const kind = t.st;
   const name =
@@ -521,24 +544,25 @@ function arrive(t) {
     s.fill = 0;
 
     s.lastArrival = {
-      time:now,
-      truck:t.id
+      time: now,
+      truck: t.id
     };
 
     s.arrivals.unshift({
-      time:now,
-      truck:t.id
+      time: now,
+      truck: t.id
     });
 
-    s.arrivals = s.arrivals.slice(0,10);
+    s.arrivals = s.arrivals.slice(0, 10);
 
     t.st = 'stop';
     t.dwell = STOP_TICKS;
+  }
 
-  } else if (kind === 'wh') {
+  else if (kind === 'wh') {
     wh.lastArrival = {
-      time:now,
-      truck:t.id
+      time: now,
+      truck: t.id
     };
 
     if (wh.fill + t.load <= wh.cap) {
@@ -554,7 +578,7 @@ function arrive(t) {
 }
 
 function assign(t) {
-  const {dist,prev} = dijkstra(t.node);
+  const { dist, prev } = dijkstra(t.node);
 
   const taken = T
     .filter(o =>
@@ -570,23 +594,25 @@ function assign(t) {
       vol(s) <= t.cap - t.load &&
       dist[s.id] < Infinity
     )
-    .sort((a,b) =>
+    .sort((a, b) =>
       b.fill / (1 + dist[b.id] / 3000) -
       a.fill / (1 + dist[a.id] / 3000)
     );
 
   if (
-    t.load >= t.cap * .85 ||
+    t.load >= t.cap * 0.85 ||
     (!c.length && t.load > 0)
   ) {
     t.target = 'wh';
     t.st = 'wh';
+  }
 
-  } else if (c.length) {
+  else if (c.length) {
     t.target = c[0].id;
     t.st = 'site';
+  }
 
-  } else {
+  else {
     return;
   }
 
@@ -676,14 +702,18 @@ setInterval(
   DT * 1000
 );
 
-// ---- map ----
+
+// =========================================================
+// 11. GOOGLE MAP
+// =========================================================
+
 let gmap = null;
 let truckMarkers = [];
 let truckRoutes = [];
 
 const CENTER0 = {
-  lat:7.10,
-  lng:125.53
+  lat: 7.10,
+  lng: 125.53
 };
 
 const ZOOM0 = 11;
@@ -734,19 +764,19 @@ async function initMap() {
     </div>
   `;
 
-  const {Map} =
+  const { Map } =
     await google.maps.importLibrary('maps');
 
-  const {AdvancedMarkerElement} =
+  const { AdvancedMarkerElement } =
     await google.maps.importLibrary('marker');
 
   gmap = new Map($('#leaf'), {
-    center:CENTER0,
-    zoom:ZOOM0,
-    mapId:'DEMO_MAP_ID',
-    streetViewControl:false,
-    mapTypeControl:false,
-    fullscreenControl:false
+    center: CENTER0,
+    zoom: ZOOM0,
+    mapId: 'DEMO_MAP_ID',
+    streetViewControl: false,
+    mapTypeControl: false,
+    fullscreenControl: false
   });
 
   $('#routestat').textContent =
@@ -770,12 +800,12 @@ async function initMap() {
     );
 
     b.gm = new AdvancedMarkerElement({
-      map:gmap,
-      position:{
-        lat:b.la,
-        lng:b.ln
+      map: gmap,
+      position: {
+        lat: b.la,
+        lng: b.ln
       },
-      content:b.el
+      content: b.el
     });
   });
 
@@ -786,12 +816,12 @@ async function initMap() {
   whEl.textContent = '🏭';
 
   new AdvancedMarkerElement({
-    map:gmap,
-    position:{
-      lat:wh.la,
-      lng:wh.ln
+    map: gmap,
+    position: {
+      lat: wh.la,
+      lng: wh.ln
     },
-    content:whEl
+    content: whEl
   });
 
   drawMap();
@@ -804,7 +834,7 @@ function drawMap() {
     !google.maps.marker
   ) return;
 
-  const {AdvancedMarkerElement} =
+  const { AdvancedMarkerElement } =
     google.maps.marker;
 
   S.forEach(b => {
@@ -835,7 +865,7 @@ function drawMap() {
     truckRoutes.pop().setMap(null);
   }
 
-  T.forEach((t,i) => {
+  T.forEach((t, i) => {
     if (!truckMarkers[i]) {
       const el =
         document.createElement('div');
@@ -847,55 +877,55 @@ function drawMap() {
 
       truckMarkers[i] =
         new AdvancedMarkerElement({
-          map:gmap,
-          position:{
-            lat:t.la,
-            lng:t.ln
+          map: gmap,
+          position: {
+            lat: t.la,
+            lng: t.ln
           },
-          content:el
+          content: el
         });
 
       truckRoutes[i] =
         new google.maps.Polyline({
-          map:gmap,
-          path:[],
-          strokeColor:'#111',
-          strokeOpacity:.9,
-          strokeWeight:3,
-          icons:[
+          map: gmap,
+          path: [],
+          strokeColor: '#111',
+          strokeOpacity: 0.9,
+          strokeWeight: 3,
+          icons: [
             {
-              icon:{
-                path:'M 0,-1 0,1',
-                strokeOpacity:1,
-                scale:3
+              icon: {
+                path: 'M 0,-1 0,1',
+                strokeOpacity: 1,
+                scale: 3
               },
-              offset:'0',
-              repeat:'12px'
+              offset: '0',
+              repeat: '12px'
             }
           ]
         });
     }
 
     truckMarkers[i].position = {
-      lat:t.la,
-      lng:t.ln
+      lat: t.la,
+      lng: t.ln
     };
 
     let rem = [];
 
     if (t.route) {
-      const {pts,cum} = t.route;
+      const { pts, cum } = t.route;
 
       rem = [
         {
-          lat:t.la,
-          lng:t.ln
+          lat: t.la,
+          lng: t.ln
         },
         ...pts
-          .filter((_,k) => cum[k] > t.d)
+          .filter((_, k) => cum[k] > t.d)
           .map(p => ({
-            lat:p.la,
-            lng:p.ln
+            lat: p.la,
+            lng: p.ln
           }))
       ];
     }
@@ -904,21 +934,28 @@ function drawMap() {
   });
 }
 
-// ---- panels ----
+
+// =========================================================
+// 12. ROLE / PANEL CONTROLS
+// =========================================================
+
 function start(r) {
   role = r;
 
   $('#intro').hidden = true;
   $('#workerlogin').hidden = true;
   $('#app').hidden = false;
+  $('#fabbtn').hidden = false;
 
   initMap();
 
-  $('#who').textContent = {
-    res:'Resident',
-    col:'Driver',
-    adm:'LGU'
-  }[r];
+  $('#who').textContent =
+    '· ' +
+    {
+      res: 'Resident',
+      col: 'Driver',
+      adm: 'LGU'
+    }[r];
 
   panel();
 }
@@ -928,7 +965,53 @@ function home() {
   $('#support').hidden = true;
   $('#workerlogin').hidden = true;
   $('#intro').hidden = false;
+  $('#fabbtn').hidden = true;
+  $('#aipanel').hidden = true;
 }
+
+
+// =========================================================
+// 13. AI ASSISTANT
+// =========================================================
+
+function toggleAI() {
+  const p = $('#aipanel');
+
+  p.hidden = !p.hidden;
+
+  if (!p.hidden) {
+    $('#aimsg').textContent = '';
+  }
+}
+
+function aiFaq(kind) {
+  const s = site(sel);
+  const el = $('#aimsg');
+
+  if (kind === 'fill') {
+    el.textContent =
+      role === 'res'
+        ? `${s.name} is ${Math.round(s.fill)}% full.`
+        : `Warehouse is ${Math.round(wh.fill / wh.cap * 100)}% full.`;
+  }
+
+  else if (kind === 'day') {
+    el.textContent =
+      `${s.name} throws on ${D[s.day]}s.`;
+  }
+
+  else {
+    el.textContent =
+      S.some(x => x.fill >= 90)
+        ? 'Yes — one or more sites are near capacity.'
+        : 'No active high-fill alerts right now.';
+  }
+}
+
+
+// =========================================================
+// 14. WORKER LOGIN
+// =========================================================
 
 function showWorkerLogin() {
   $('#intro').hidden = true;
@@ -950,6 +1033,16 @@ function workerLogin() {
     return;
   }
 
+  if (
+    id !== '1234' ||
+    pw !== 'Password1234'
+  ) {
+    $('#loginmsg').innerHTML =
+      '<div class="alert bad">Incorrect Employee ID or Password.</div>';
+
+    return;
+  }
+
   const asDriver =
     $('#roleToggle').checked;
 
@@ -962,6 +1055,11 @@ function workerLogin() {
       : 'adm'
   );
 }
+
+
+// =========================================================
+// 15. PANEL / BARANGAY SELECTION
+// =========================================================
 
 function pick(id) {
   sel = id;
@@ -1051,26 +1149,29 @@ function panel() {
       </button>
 
       <h2>Posts here</h2>
-
       <div id="feed"></div>
     `;
+  }
 
-  } else if (role === 'col') {
+  else if (role === 'col') {
     p.innerHTML = `
       <div id="live"></div>
 
       <h2>Site details</h2>
-
       <div id="feed"></div>
-    `;
 
-  } else {
+      <h2>Customer service reports</h2>
+      <div id="panelTickets"></div>
+    `;
+  }
+
+  else {
     p.innerHTML = `
       <div id="live"></div>
 
       <h2>Drop day per barangay</h2>
 
-      ${S.map((s,i) => `
+      ${S.map((s, i) => `
         <div
           style="
             display:grid;
@@ -1090,7 +1191,7 @@ function panel() {
               live()
             "
           >
-            ${D.map((d,j) => `
+            ${D.map((d, j) => `
               <option
                 value="${j}"
                 ${j === s.day ? ' selected' : ''}
@@ -1101,13 +1202,22 @@ function panel() {
           </select>
         </div>
       `).join('')}
+
+      <h2>Customer service reports</h2>
+      <div id="panelTickets"></div>
     `;
   }
 
   feed();
   live();
   drawMap();
+  renderTickets();
 }
+
+
+// =========================================================
+// 16. LIVE STATUS
+// =========================================================
 
 function truckStatus(t) {
   if (t.st === 'site') {
@@ -1145,8 +1255,7 @@ function live() {
   if (!el) return;
 
   const s = site(sel);
-  const open =
-    s.day === day;
+  const open = s.day === day;
 
   let h = '';
 
@@ -1211,14 +1320,11 @@ function live() {
         class="card"
         style="margin-top:8px"
       >
-        <b>
-          ${s.name} drop point
-        </b>
+        <b>${s.name} drop point</b>
 
         <div class="row">
           <span>
-            Drop day:
-            ${D[s.day]}
+            Drop day: ${D[s.day]}
           </span>
 
           <span>
@@ -1265,14 +1371,16 @@ function live() {
         </button>
       </div>
     `;
+  }
 
-  } else if (role === 'col') {
+  else if (role === 'col') {
     h =
       tr +
       wm +
       '<h2>Sites by fill</h2>' +
+
       [...S]
-        .sort((a,b) => b.fill - a.fill)
+        .sort((a, b) => b.fill - a.fill)
         .map(b => `
           <div
             class="li"
@@ -1308,9 +1416,69 @@ function live() {
             </div>
           </div>
         `).join('');
+  }
 
-  } else {
+  else {
+    const avgFill =
+      Math.round(
+        S.reduce((a, x) => a + x.fill, 0) /
+        S.length
+      );
+
+    const alerts =
+      S.filter(x => x.fill >= 90).length;
+
     h = `
+      <div class="stats">
+        <div class="stat">
+          <div class="lbl">
+            🚛 Operational Trucks
+          </div>
+          <div class="big">
+            ${T.length}/${T.length}
+          </div>
+        </div>
+
+        <div class="stat">
+          <div class="lbl">
+            📊 City Fill Level
+          </div>
+
+          <div class="big">
+            ${avgFill}%
+          </div>
+
+          <div class="meter">
+            <b
+              style="
+                width:${avgFill}%;
+                background:${col(avgFill)}
+              "
+            ></b>
+          </div>
+        </div>
+
+        <div class="stat">
+          <div class="lbl">
+            🏭 Warehouse
+          </div>
+
+          <div class="big">
+            ${Math.round(wh.fill / wh.cap * 100)}%
+          </div>
+        </div>
+
+        <div class="stat">
+          <div class="lbl">
+            ⚠️ Alerts
+          </div>
+
+          <div class="big">
+            ${alerts}
+          </div>
+        </div>
+      </div>
+
       <h2>Fleet</h2>
 
       <div
@@ -1350,14 +1518,18 @@ function live() {
   el.innerHTML = h;
 }
 
+
+// =========================================================
+// 17. POSTS / RESIDENT PROFILE
+// =========================================================
+
 function feed() {
   const f = $('#feed');
 
   if (!f) return;
 
-  const l = posts.filter(
-    p => p.id === sel
-  );
+  const l =
+    posts.filter(p => p.id === sel);
 
   f.innerHTML =
     (
@@ -1436,6 +1608,11 @@ function throwTrash() {
   drawMap();
 }
 
+
+// =========================================================
+// 18. IMAGE UPLOAD
+// =========================================================
+
 function pic(inp) {
   const f = inp.files[0];
 
@@ -1476,14 +1653,11 @@ function pic(inp) {
       pending =
         c.toDataURL(
           'image/jpeg',
-          .7
+          0.7
         );
 
-      $('#prev').src =
-        pending;
-
-      $('#prev').hidden =
-        false;
+      $('#prev').src = pending;
+      $('#prev').hidden = false;
     };
 
     i.src = r.result;
@@ -1496,22 +1670,20 @@ function postFb() {
   const t =
     $('#fbt').value.trim();
 
-  if (!t && !pending) {
-    return;
-  }
+  if (!t && !pending) return;
 
   posts.unshift({
-    id:sel,
+    id: sel,
     t,
-    img:pending,
+    img: pending,
     time:
       D[day] +
       ' ' +
       new Date().toLocaleTimeString(
         [],
         {
-          hour:'2-digit',
-          minute:'2-digit'
+          hour: '2-digit',
+          minute: '2-digit'
         }
       )
   });
@@ -1524,13 +1696,20 @@ function postFb() {
   feed();
 }
 
-// ---- customer service ----
+
+// =========================================================
+// 19. CUSTOMER SERVICE
+// =========================================================
+
 let tickets = [];
 let tkid = 0;
 
 function openSupport() {
   $('#app').hidden = true;
   $('#support').hidden = false;
+
+  $('#ticketsCard').hidden =
+    role === 'res';
 
   renderTickets();
 }
@@ -1552,14 +1731,14 @@ function submitTicket() {
   }
 
   tickets.unshift({
-    id:++tkid,
-    cat:$('#sc').value,
+    id: ++tkid,
+    cat: $('#sc').value,
     name:
       $('#sn').value.trim() ||
       'Anonymous',
-    msg:m,
-    status:'Open',
-    time:new Date().toLocaleString()
+    msg: m,
+    status: 'Open',
+    time: new Date().toLocaleString()
   });
 
   $('#sm').value = '';
@@ -1574,11 +1753,9 @@ function submitTicket() {
   renderTickets();
 }
 
-function setStatus(id,s) {
+function setStatus(id, s) {
   const t =
-    tickets.find(
-      x => x.id === id
-    );
+    tickets.find(x => x.id === id);
 
   if (t) {
     t.status = s;
@@ -1588,50 +1765,57 @@ function setStatus(id,s) {
 }
 
 function renderTickets() {
-  const el =
-    $('#tickets');
+  const html =
+    tickets.length
+      ? tickets.map(t => `
+          <div class="post">
+            <b>
+              #${t.id} ${esc(t.cat)}
+            </b>
 
-  if (!tickets.length) {
-    el.innerHTML =
-      '<p class="mute">No reports yet.</p>';
+            <span class="mute">
+              ${esc(t.status)}
+            </span>
 
-    return;
+            <div>
+              ${esc(t.msg)}
+            </div>
+
+            <div class="mute">
+              ${esc(t.name)} · ${t.time}
+            </div>
+
+            ${
+              role === 'adm' &&
+              t.status !== 'Resolved'
+                ? `
+                  <button
+                    class="btn alt"
+                    style="margin-top:4px"
+                    onclick="setStatus(${t.id},'Resolved')"
+                  >
+                    Mark resolved
+                  </button>
+                `
+                : ''
+            }
+          </div>
+        `).join('')
+      : `
+        <p class="mute">
+          No reports yet.
+        </p>
+      `;
+
+  const el = $('#tickets');
+
+  if (el) {
+    el.innerHTML = html;
   }
 
-  el.innerHTML =
-    tickets.map(t => `
-      <div class="post">
-        <b>
-          #${t.id}
-          ${esc(t.cat)}
-        </b>
+  const pel = $('#panelTickets');
 
-        <span class="mute">
-          ${esc(t.status)}
-        </span>
-
-        <div>
-          ${esc(t.msg)}
-        </div>
-
-        <div class="mute">
-          ${esc(t.name)} · ${t.time}
-        </div>
-
-        ${
-          role === 'adm' &&
-          t.status !== 'Resolved'
-            ? `
-              <button
-                class="btn alt"
-                style="margin-top:4px"
-                onclick="setStatus(${t.id},'Resolved')"
-              >
-                Mark resolved
-              </button>
-            `
-            : ''
-        }
-      </div>
-    `).join('');
+  if (pel) {
+    pel.innerHTML = html;
+  }
 }

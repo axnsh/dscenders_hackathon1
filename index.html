@@ -7,7 +7,6 @@
 <title>Bin Route Davao</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
-
 </head>
 <body>
 <main>
@@ -37,9 +36,11 @@
   <button class="btn alt w" onclick="home()">Back</button>
 </section>
 <section id="app" hidden>
-  <div class="bar">
-    <div><b id="who"></b> <button class="btn alt" onclick="home()">Switch role</button> <button class="btn alt" onclick="openSupport()">Customer service</button></div>
-    <label class="mute">Demo day <select id="dsel" style="width:auto" onchange="day=+this.value;panel()"></select></label>
+  <div class="topbar">
+    <div class="brand"><span class="ic">🗑️</span>WasteWise <span class="mute" style="color:#c7d6da;font-weight:400" id="who"></span></div>
+    <select id="dsel" onchange="day=+this.value;panel()"></select>
+    <button class="em" onclick="openSupport()">Customer Service</button>
+    <div class="avatar" onclick="home()" title="Switch role" style="cursor:pointer">👤</div>
   </div>
   <div class="grid">
     <div class="card"><div id="map"></div>
@@ -66,9 +67,18 @@
       <button class="btn w" onclick="submitTicket()">Submit</button>
       <div id="smsg"></div>
     </div>
-    <div class="card"><h2>Reports</h2><div id="tickets"></div></div>
+    <div class="card" id="ticketsCard"><h2>Reports</h2><div id="tickets"></div></div>
   </div>
 </section>
+<button class="fab" id="fabbtn" onclick="toggleAI()" aria-label="AI Assistant" hidden>🤖</button>
+<div class="aipanel" id="aipanel" hidden>
+  <h3>🤖 WasteWise Assistant</h3>
+  <div class="mute" style="font-size:12px">Quick FAQ</div>
+  <button class="chip" onclick="aiFaq('fill')">What's today's fill level?</button>
+  <button class="chip" onclick="aiFaq('day')">When's my barangay's drop day?</button>
+  <button class="chip" onclick="aiFaq('alerts')">Any active alerts?</button>
+  <div id="aimsg" class="mute" style="margin-top:8px"></div>
+</div>
 </main>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCVcoAh5u_YKrcWXuysPr7tZpsRxJ5g2cE&libraries=marker&v=weekly"></script>
 <script src="script.js"></script>
