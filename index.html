@@ -2,35 +2,75 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="referrer" content="no-referrer-when-downgrade">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bin Route Davao</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
+
 </head>
 <body>
 <main>
-<section id="intro">
-  <h1>GOKGOKGOK</h1>
-  <p class="mute">Every barangay has a drop point and a drop day. Trucks are sent to the fullest sites first. Pick how you want to use it.</p>
+<section id="intro" class="choose">
+  <div class="chooseHead"><span class="chooseIcon">🗑️</span><b>WasteWise</b></div>
+  <h1>Welcome - Choose Role</h1>
+  <p class="mute">Who are you?</p>
   <div class="roles">
-    <button class="role" onclick="start('res')"><span class="i">🏠</span><b>I throw trash</b>Find your barangay's drop point and day. Post feedback or a photo.</button>
-    <button class="role" onclick="start('col')"><span class="i">🚛</span><b>I collect trash</b>See which sites are full, watch trucks live, read resident reports.</button>
-    <button class="role" onclick="start('adm')"><span class="i">🛠️</span><b>I'm the admin</b>Add or remove trucks and set each barangay's drop day.</button>
+    <button class="role big" onclick="start('res')"><span class="i">🏠</span><b>I am a Resident</b>Find your barangay's drop point and day. Post feedback or a photo. No login needed — just set your name and address inside.</button>
+    <button class="role big" onclick="showWorkerLogin()"><span class="i">🦺</span><b>I am a Worker</b>LGU staff and truck drivers sign in here to see fleet status, routes, and monitoring.</button>
   </div>
+</section>
+<section id="workerlogin" hidden class="choose dark">
+  <div class="chooseHead"><span class="chooseIcon">🗑️</span><b>LGU</b></div>
+  <h1>WasteWise - Worker Portal</h1>
+  <label class="mute" for="empid">Employee ID</label>
+  <input id="empid" placeholder="Employee ID">
+  <label class="mute" for="emppw" style="margin-top:8px;display:block">Password</label>
+  <input id="emppw" type="password" placeholder="Password">
+  <div class="toggleRow">
+    <span>LGU</span>
+    <label class="switch"><input type="checkbox" id="roleToggle"><span class="slider"></span></label>
+    <span>Driver</span>
+  </div>
+  <button class="btn w" onclick="workerLogin()">Log In</button>
+  <div id="loginmsg"></div>
+  <button class="btn alt w" onclick="home()">Back</button>
 </section>
 <section id="app" hidden>
   <div class="bar">
-    <div><b id="who"></b> <button class="btn alt" onclick="home()">Switch role</button></div>
+    <div><b id="who"></b> <button class="btn alt" onclick="home()">Switch role</button> <button class="btn alt" onclick="openSupport()">Customer service</button></div>
     <label class="mute">Demo day <select id="dsel" style="width:auto" onchange="day=+this.value;panel()"></select></label>
   </div>
   <div class="grid">
     <div class="card"><div id="map"></div>
-      <div class="legend"><span>Number = site fill %</span><span>Dashed ring = open for throwing today</span><span>🚛 = live truck</span><span>🏭 = warehouse</span></div>
-      <p class="mute">Schematic map of Davao City using approximate barangay positions, not survey-accurate.</p></div>
+      <div class="legend">
+        <span>Number = site fill %</span>
+        <span>Dashed ring = open for throwing today</span>
+        <span>🚛 = live truck</span>
+        <span>🏭 = warehouse</span>
+        <span>Each colored line = a separate route</span>
+      </div>
+      <p class="mute" id="routestat">Loading road routes...</p>
+      <p class="mute">Live Google Maps basemap of Davao City. Trucks move only along the colored route lines. Pins sit at approximate barangay coordinates and the warehouse is a sample position. Requires an internet connection to load the map.</p></div>
     <div class="card" id="panel"></div>
   </div>
 </section>
+<section id="support" hidden>
+  <div class="bar"><b>Customer service</b><button class="btn alt" onclick="closeSupport()">Back to map</button></div>
+  <div class="grid">
+    <div class="card">
+      <h2>Report a bug or complaint</h2>
+      <select id="sc" aria-label="Category"><option>Bug or error</option><option>Missed pickup</option><option>Complaint</option><option>Suggestion</option></select>
+      <input id="sn" placeholder="Your name (optional)" style="margin-top:6px">
+      <textarea id="sm" rows="5" placeholder="Describe what happened..." style="margin-top:6px"></textarea>
+      <button class="btn w" onclick="submitTicket()">Submit</button>
+      <div id="smsg"></div>
+    </div>
+    <div class="card"><h2>Reports</h2><div id="tickets"></div></div>
+  </div>
+</section>
 </main>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCVcoAh5u_YKrcWXuysPr7tZpsRxJ5g2cE&libraries=marker&v=weekly"></script>
 <script src="script.js"></script>
 </body>
 </html>
