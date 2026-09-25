@@ -279,7 +279,8 @@ function posAt(path, d) {
 
 
 // =========================================================
-// 7. GOOGLE DIRECTIONS / ROAD ROUTES
+// 7. GOOGLE / OSRM ROAD ROUTES
+// Actual streets only — no straight-line fallback
 // =========================================================
 
 const ADJ = {};
@@ -291,8 +292,13 @@ Object.keys(NODES).forEach(k => {
 let routesReady = false;
 let fallbackCount = 0;
 
+
+// ---------------------------------------------------------
+// GOOGLE MAPS ROAD ROUTE
+// ---------------------------------------------------------
+
 function fetchRoad(a, b) {
-  return new Promise(res => {
+  return new Promise(resolve => {
     const svc = new google.maps.DirectionsService();
 
     svc.route({
@@ -300,87 +306,225 @@ function fetchRoad(a, b) {
         lat: NODES[a].la,
         lng: NODES[a].ln
       },
+
       destination: {
         lat: NODES[b].la,
         lng: NODES[b].ln
       },
-      travelMode: 'DRIVING',
-      avoidFerries: true
-    }, (r, status) => {
-      if (status === 'OK' && r.routes[0]) {
-        const steps = r.routes[0].legs.flatMap(l => l.steps);
 
-        const hasFerry = steps.some(
-          s => /ferry/i.test(s.instructions || '')
-        );
+      travelMode: google.maps.TravelMode.DRIVING,
+      avoidFerries: true,
+      provideRouteAlternatives: false
 
-        if (hasFerry) {
-          res(null);
+    }, (result, status) => {
+
+      if (
+        status === 'OK' &&
+        result.routes &&
+        result.routes[0]
+      ) {
+        const route = result.routes[0];
+
+        /*
+         * Use the detailed step geometry instead of
+         * a straight connection between locations.
+         */
+        const points = route.routes
+          ? []
+          : route.legs
+              .flatMap(leg => leg.steps)
+              .flatMap(step => step.path)
+              .map(point => ({
+                la: point.lat(),
+                ln: point.lng()
+              }));
+
+        if (points.length >= 2) {
+          resolve(points);
           return;
         }
-
-        res(
-          steps
-            .flatMap(s => s.path)
-            .map(p => ({
-              la: p.lat(),
-              ln: p.lng()
-            }))
-        );
-      } else {
-        res(null);
       }
+
+      console.warn(
+        `Google route failed: ${a} → ${b}`,
+        status
+      );
+
+      resolve(null);
     });
   });
 }
 
-async function loadRoutes() {
-  const roads = await Promise.all(
-    EDGES.map(([a, b]) => fetchRoad(a, b))
-  );
 
-  EDGES.forEach(([a, b], i) => {
-    const color = PALETTE[i % PALETTE.length];
+// ---------------------------------------------------------
+// OSRM ROAD FALLBACK
+// Still follows real roads
+// ---------------------------------------------------------
 
-    let pts = roads[i];
+async function fetchOsrmRoad(a, b) {
+  try {
+    const start =
+      `${NODES[a].ln},${NODES[a].la}`;
 
-    if (!pts) {
-      fallbackCount++;
-      pts = [NODES[a], NODES[b]];
+    const end =
+      `${NODES[b].ln},${NODES[b].la}`;
+
+    const url =
+      `https://router.project-osrm.org/route/v1/driving/` +
+      `${start};${end}` +
+      `?overview=full&geometries=geojson`;
+
+    const response =
+      await fetch(url);
+
+    if (!response.ok) {
+      return null;
     }
 
-    const p = mkPath(pts);
-    const rp = mkPath([...pts].reverse());
+    const data =
+      await response.json();
+
+    if (
+      data.code !== 'Ok' ||
+      !data.routes ||
+      !data.routes[0]
+    ) {
+      return null;
+    }
+
+    return data.routes[0]
+      .geometry
+      .coordinates
+      .map(([ln, la]) => ({
+        la,
+        ln
+      }));
+
+  } catch (error) {
+    console.warn(
+      `OSRM route failed: ${a} → ${b}`,
+      error
+    );
+
+    return null;
+  }
+}
+
+
+// ---------------------------------------------------------
+// LOAD ALL ROAD ROUTES
+// ---------------------------------------------------------
+
+async function loadRoutes() {
+  fallbackCount = 0;
+
+  $('#routestat').textContent =
+    'Loading routes along actual streets...';
+
+  for (
+    let i = 0;
+    i < EDGES.length;
+    i++
+  ) {
+    const [a, b] =
+      EDGES[i];
+
+    const color =
+      PALETTE[i % PALETTE.length];
+
+
+    /*
+     * Prevent hitting Google with all requests
+     * at exactly the same time.
+     */
+    await new Promise(resolve =>
+      setTimeout(resolve, 150)
+    );
+
+
+    // Try Google first
+    let pts =
+      await fetchRoad(a, b);
+
+
+    // If Google fails, try OSRM
+    if (!pts || pts.length < 2) {
+      console.log(
+        `Trying OSRM: ${a} → ${b}`
+      );
+
+      pts =
+        await fetchOsrmRoad(a, b);
+    }
+
+
+    /*
+     * If BOTH fail, skip the connection.
+     * Do NOT draw a straight line.
+     */
+    if (!pts || pts.length < 2) {
+      fallbackCount++;
+
+      console.warn(
+        `No road route available: ${a} → ${b}`
+      );
+
+      continue;
+    }
+
+
+    // Build truck paths
+    const forwardPath =
+      mkPath(pts);
+
+    const reversePath =
+      mkPath([...pts].reverse());
+
 
     ADJ[a].push({
       to: b,
-      path: p
+      path: forwardPath
     });
 
     ADJ[b].push({
       to: a,
-      path: rp
+      path: reversePath
     });
 
+
+    // Draw the road-aligned line
     new google.maps.Polyline({
       map: gmap,
-      path: pts.map(q => ({
-        lat: q.la,
-        lng: q.ln
+
+      path: pts.map(p => ({
+        lat: p.la,
+        lng: p.ln
       })),
+
       strokeColor: color,
-      strokeOpacity: 0.9,
-      strokeWeight: 5
+      strokeOpacity: 0.85,
+      strokeWeight: 5,
+
+      geodesic: false
     });
-  });
+  }
+
 
   routesReady = true;
 
-  $('#routestat').textContent = fallbackCount
-    ? `${fallbackCount} of ${EDGES.length} routes could not be fetched from Google Directions and are drawn as straight lines. Check that the Directions API is enabled for this key.`
-    : `All ${EDGES.length} routes follow real roads.`;
-}
 
+  const loaded =
+    EDGES.length - fallbackCount;
+
+  if (fallbackCount > 0) {
+    $('#routestat').textContent =
+      `${loaded}/${EDGES.length} road routes loaded. ` +
+      `${fallbackCount} could not be retrieved.`;
+  } else {
+    $('#routestat').textContent =
+      `All ${EDGES.length} routes follow actual streets.`;
+  }
+}
 
 // =========================================================
 // 8. DIJKSTRA / ROUTE FINDING
