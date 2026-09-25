@@ -389,6 +389,10 @@ h2 {
   color: #fff;
 
   font-size: 18px;
+
+  display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 
@@ -472,9 +476,19 @@ h2 {
   z-index: 1000;
 }
 
+.zb {
+  position: absolute;
+  bottom: 10px;
+  left: -300px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+}
+
 .zb .btn {
   border-radius: 50%;
-
+  
   width: 44px;
   height: 44px;
 
@@ -482,7 +496,6 @@ h2 {
 
   background: #fff;
   color: var(--blue);
-
   box-shadow: var(--shadow-soft);
 }
 
@@ -876,11 +889,13 @@ textarea {
   color: #fff;
 
   box-shadow: var(--shadow-soft);
+  
 }
 
 #support .bar .btn {
   background: rgba(255,255,255,.12);
   color: #fff;
+  
 
   border-color: rgba(255,255,255,.18);
 }
